@@ -16,9 +16,11 @@ clean:
 compile:
 	@grep -q filter=golang .gitattributes &&\
 		find src -type f -name '*.go' -exec golang_filter curl '{}' \;
-	go build -o $(BIN_FILE) $(PROJECT)
-	@grep -q filter=golang .gitattributes &&\
-		find src -type f -name '*.go' -exec golang_filter uncurl '{}' \;
+	go build -o $(BIN_FILE) $(PROJECT);\
+		status=$$?;\
+		grep -q filter=golang .gitattributes &&\
+			find src -type f -name '*.go' -exec golang_filter uncurl '{}' \;;\
+		exit $$status
 	@mkdir -p $(BIN_DIR)
 	mv $(BIN_FILE) $(BIN_DIR)
 
