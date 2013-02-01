@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"github.com/hoisie/mustache"
-	"github.com/vaughan0/go-logging"
+	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"codetag/log_setup"
 )

@@ -3,21 +3,9 @@ package log_setup
 import (
 	"fmt"
 	"strings"
-	"github.com/vaughan0/go-logging"
+	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 )
-
-
-// Unfortunately, logging doesn't export these.
-var reverseLevelStrings = map[string]logging.Level {
-	"FATAL": logging.Fatal,
-	"ERROR": logging.Error,
-	"WARN": logging.Warn,
-	"NOTICE": logging.Notice,
-	"INFO": logging.Info,
-	"DEBUG": logging.Debug,
-	"TRACE": logging.Trace,
-}
 
 
 // Loads the appropriate plugin and creates an outputter, given a configuration section.
@@ -51,7 +39,7 @@ func newOutputterConfig(cp *yaml.Map) (logging.Outputter, error) {
 	// Check for the "threshold" option
 	thresh, ok := config_map["threshold"]
 	if ok {
-		level, ok := reverseLevelStrings[strings.ToUpper(thresh)]
+		level, ok := logging.ReverseLevelStrings[strings.ToUpper(thresh)]
 		if ok {
 			output = logging.ThresholdOutputter{level, output}
 		} else {
@@ -105,7 +93,7 @@ func SetupYAML(cp *yaml.Map) (err error) {
 			return fmt.Errorf("Logging level must be string: %v", v)
 		}
 		parts := strings.Split(string(v), ",")
-		level, ok := reverseLevelStrings[strings.ToUpper(parts[0])]
+		level, ok := logging.ReverseLevelStrings[strings.ToUpper(parts[0])]
 		if !ok {
 			return fmt.Errorf("Unknown logging level: %v", v)
 		}
