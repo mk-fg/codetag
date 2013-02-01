@@ -17,7 +17,7 @@ func newOutputterConfig(cp *yaml.Map) (logging.Outputter, error) {
 	for k, node := range config {
 		v, ok := node.(yaml.Scalar)
 		if !ok {
-			return nil, fmt.Errorf("Invalid type: %v", node)
+			return nil, fmt.Errorf("Invalid type (must be string, key: %q): %v", k, node)
 		}
 		config_map[k] = string(v)
 	}
@@ -53,12 +53,10 @@ func newOutputterConfig(cp *yaml.Map) (logging.Outputter, error) {
 
 // Configures the logging hierarchy from a YAML object
 func SetupYAML(cp *yaml.Map) (err error) {
-	config := *cp
-	// fmt.Println(config)
-
 	var (
 		section yaml.Node
 		section_map yaml.Map
+		config = *cp
 	)
 
 	// Create outputters
