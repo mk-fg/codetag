@@ -1,0 +1,33 @@
+# Paths to scan, "~" will be expanded to $HOME or pw_dir
+paths:
+  - ~/hatch
+
+# Taggers are configurable plugins that return a string tag for a file,
+#  given it's location. What they do to that path (or files) is plugin-specific.
+# "taggers" should be a map, with tag namespace (e.g. "lang" part in "lang:py")
+#  as a key and either scalar plugin name or map with "name: config..." as value.
+# Special-case namespace "_none" can be used to use returned tags w/o prefix.
+taggers:
+  host:
+    - github
+    - bitbucket
+    - local:
+      host: fraggod.net
+  lang: lang_from_ext
+  scm: scm_from_files
+
+# See go-logging docs (github.com/mk-fg/go-logging) for format specs
+logging:
+  loggers:
+    root: DEBUG,console
+    vaughan0: FATAL
+
+  console:
+    type: console
+    stream: stderr
+    format: $time $level: ($file:$line) $msg
+
+  # logfile:
+  #   type: file
+  #   file: file.log
+  #   format: '$time $level ($logger) $msg'
