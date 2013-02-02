@@ -118,9 +118,14 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 	var (
 		log *logging.Logger
 		log_init = false
+		config_init = false
 	)
 
 	defer func() {
+		if config_init {
+			return
+		}
+		// Recover only for configuration issues.
 		if err := recover(); err != nil {
 			if log_init {
 				log.Fatalf("Failed to process configuration file (%q): %v", config_path, err)
@@ -202,7 +207,16 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 		os.Exit(0)
 	}
 
-	taggers := make(map[string][]tgrs.Tagger)
+	taggers := make(map[string][](func(path string, info os.FileInfo, ctx *map[string]interface{}) []string))
+
+	init_tagger := func(ns, name string, config *yaml.Node) {
+		tagger, err := tgrs.Get(name, config)
+		if err != nil {
+			log.Warnf("Failed to init tagger %v (ns: %v): %v", ns, name, err)
+		} else {
+			taggers[ns] = append(taggers[ns], tagger)
+		}
+	}
 
 	for ns, node := range config_map {
 		if ns == "_none" {
@@ -221,7 +235,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 				log.Warnf("Invalid tagger(-list) specification (ns: %v): %v", ns, node)
 				continue
 			}
-			taggers[ns] = append(taggers[ns], tgrs.Get(string(tagger), nil))
+			init_tagger(ns, string(tagger), nil)
 			continue
 		}
 
@@ -234,7 +248,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 						"must be map or string (ns: %v): %v", ns, node)
 					continue
 				}
-				taggers[ns] = append(taggers[ns], tgrs.Get(string(tagger), nil))
+				init_tagger(ns, string(tagger), nil)
 				continue
 			}
 			if len(tagger_map) != 1 {
@@ -243,13 +257,15 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 				continue
 			}
 			for tagger, node := range tagger_map {
-				taggers[ns] = append(taggers[ns], tgrs.Get(tagger, &node))
+				init_tagger(ns, tagger, &node)
 				continue
 			}
 		}
 	}
 
 	log.Debugf("Using taggers: %v", taggers)
+
+	config_init = true
 
 	// Walk the paths
 	var (
@@ -282,7 +298,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 			for _, tagger_list := range taggers {
 				// Maybe split context by ns here?
 				for _, tagger := range tagger_list {
-					tags := tagger.GetTags(path, info, &ctx)
+					tags := tagger(path, info, &ctx)
 					if tags == nil {
 						continue
 					}

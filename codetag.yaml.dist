@@ -13,8 +13,8 @@ taggers:
     - bitbucket
     - local:
       host: fraggod.net
-  lang: lang_from_ext
-  scm: scm_from_files
+  lang: lang_detect_ext
+  scm: scm_detect_paths
 
 # See go-logging docs (github.com/mk-fg/go-logging) for format specs
 logging:
