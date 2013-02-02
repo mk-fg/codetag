@@ -18,7 +18,7 @@ err=0
 [[ -z "$gpp" ]] || ls -1 $DEPS | xargs -n1 $gpp curl -b
 
 output=$(mktemp)
-go build -o "$3" "${PROJECT}/cli" >"$output" 2>&1 || err=$?
+go build -o "$3" "${PROJECT}" >"$output" 2>&1 || err=$?
 
 if [[ -z "$gpp" ]]
 then cat "$output" >&2 ||:

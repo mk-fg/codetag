@@ -1,6 +1,7 @@
 # Paths to scan, "~" will be expanded to $HOME or pw_dir
 paths:
-  - ~/hatch
+  - ~/hatch/codetag
+  - ~/hatch/go
 
 # Taggers are configurable plugins that return a string tag for a file,
 #  given it's location. What they do to that path (or files) is plugin-specific.

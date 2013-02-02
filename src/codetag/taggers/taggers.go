@@ -49,7 +49,9 @@ func tagger_scm_detect_paths(name string, config *yaml.Node, path string, info o
 	for tag, dir := range scm_paths {
 		info, err := os.Stat(filepath.Join(path, dir))
 		if err == nil && info.IsDir() {
-			delete(*ctx, "tags")
+			if *ctx != nil {
+				delete(*ctx, "tags")
+			}
 			tags = append(tags, tag)
 		}
 	}

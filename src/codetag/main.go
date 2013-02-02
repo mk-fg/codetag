@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"bytes"
 	"encoding/gob"
-	"sort"
 	"github.com/hoisie/mustache"
 	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
@@ -59,11 +58,25 @@ var config_path string
 
 // Clone context object using gob serialization
 func ctx_clone(src, dst interface{}) {
+	var err error
 	buff := new(bytes.Buffer)
 	enc := gob.NewEncoder(buff)
 	dec := gob.NewDecoder(buff)
-	enc.Encode(src)
-	dec.Decode(dst)
+	err = enc.Encode(src)
+	if err != nil {
+		panic(err)
+	}
+	err = dec.Decode(dst)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Used to keep set of tags as keys.
+type ctx_tagset map[string]bool
+
+func init() {
+	gob.Register(ctx_tagset{})
 }
 
 
@@ -207,7 +220,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 		os.Exit(0)
 	}
 
-	taggers := make(map[string][](func(path string, info os.FileInfo, ctx *map[string]interface{}) []string))
+	taggers := make(map[string][]tgrs.Tagger)
 
 	init_tagger := func(ns, name string, config *yaml.Node) {
 		tagger, err := tgrs.Get(name, config)
@@ -269,9 +282,9 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 
 	// Walk the paths
 	var (
-		context = make(map[string]map[string]interface{})
-		ctx map[string]interface{}
-		ctx_tags sort.StringSlice
+		context = make(map[string]map[string]map[string]interface{})
+		ctx map[string]map[string]interface{}
+		ctx_tags ctx_tagset
 	)
 
 	for _, path := range paths {
@@ -279,45 +292,68 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 
 		walk_iter := func (path string, info os.FileInfo, err error) error {
 			if err != nil {
-				log.Tracef(" - path: %v (info: %v), error: %v", path, info, err)
+				log.Debugf(" - path: %v (info: %v), error: %v", path, info, err)
 				return nil
 			}
 
 			// Get context for this path or copy it from parent path
 			ctx, ok = context[path]
 			if !ok {
-				ctx = make(map[string]interface{})
 				ctx_parent, ok := context[filepath.Dir(path)]
 				if ok {
-					ctx_clone(ctx_parent, ctx)
+					ctx = nil
+					ctx_clone(ctx_parent, &ctx)
+				} else {
+					ctx = make(map[string]map[string]interface{}, len(taggers))
 				}
 				context[path] = ctx
 			}
 
 			// Run all taggers
-			for _, tagger_list := range taggers {
-				// Maybe split context by ns here?
+			for ns, tagger_list := range taggers {
+				ctx_ns, ok := ctx[ns]
+				if !ok {
+					ctx[ns] = make(map[string]interface{}, len(taggers) + 1)
+					ctx_ns = ctx[ns]
+				}
 				for _, tagger := range tagger_list {
-					tags := tagger(path, info, &ctx)
+					tags := tagger(path, info, &ctx_ns)
 					if tags == nil {
 						continue
 					}
 					// Push new tags to the context
-					ctx_tags_if, ok := ctx["tags"]
+					ctx_tags_if, ok := ctx_ns["tags"]
 					if !ok {
-						ctx_tags = sort.StringSlice{}
+						ctx_tags = make(ctx_tagset, len(taggers))
 					} else {
-						ctx_tags = ctx_tags_if.(sort.StringSlice)
+						ctx_tags = ctx_tags_if.(ctx_tagset)
 					}
 					for _, tag := range tags {
-						if ctx_tags.Search(tag) < 0 {
-							ctx_tags = append(ctx_tags, tag)
+						_, ok = ctx_tags[tag]
+						if !ok {
+							ctx_tags[tag] = true
 						}
 					}
-					ctx_tags.Sort()
-					ctx["tags"] = ctx_tags
+					ctx_ns["tags"] = ctx_tags
 				}
 			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file_tags := []string{}
+			for ns, ctx_ns := range ctx {
+				ctx_tags_if, ok := ctx_ns["tags"]
+				if !ok {
+					continue
+				}
+				ctx_tags = ctx_tags_if.(ctx_tagset)
+				for tag, _ := range ctx_tags {
+					file_tags = append(file_tags, ns + ":" + tag)
+				}
+			}
+			log.Debugf(" - file: %v, tags: %v", path, file_tags)
 
 			return nil
 		}
