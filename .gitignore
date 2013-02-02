@@ -1,3 +1,5 @@
 /.gitattributes
 /.redo
 /bin
+
+*.go.src-bak
