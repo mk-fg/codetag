@@ -7,10 +7,14 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"bytes"
+	"encoding/gob"
+	"sort"
 	"github.com/hoisie/mustache"
 	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"codetag/log_setup"
+	tgrs "codetag/taggers"
 )
 
 
@@ -51,6 +55,16 @@ var config_search = []path_t{"", "~/.codetag.yaml", "/etc/codetag.yaml"}
 
 // Config file that is used.
 var config_path string
+
+
+// Clone context object using gob serialization
+func ctx_clone(src, dst interface{}) {
+	buff := new(bytes.Buffer)
+	enc := gob.NewEncoder(buff)
+	dec := gob.NewDecoder(buff)
+	enc.Encode(src)
+	dec.Decode(dst)
+}
 
 
 func main() {
@@ -188,9 +202,17 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 		os.Exit(0)
 	}
 
-	taggers := make(map[string][]string)
+	taggers := make(map[string][]tgrs.Tagger)
 
 	for ns, node := range config_map {
+		if ns == "_none" {
+			ns = ""
+		}
+		if strings.HasPrefix(ns, "_") {
+			log.Warnf("Ignoring namespace name, starting with underscore: %v", ns)
+			continue
+		}
+
 		config_list, ok := node.(yaml.List)
 		if !ok {
 			// It's also ok to have "ns: tagger" spec, if there's just one for ns
@@ -199,7 +221,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 				log.Warnf("Invalid tagger(-list) specification (ns: %v): %v", ns, node)
 				continue
 			}
-			taggers[ns] = append(taggers[ns], string(tagger))
+			taggers[ns] = append(taggers[ns], tgrs.Get(string(tagger), nil))
 			continue
 		}
 
@@ -212,7 +234,7 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 						"must be map or string (ns: %v): %v", ns, node)
 					continue
 				}
-				taggers[ns] = append(taggers[ns], string(tagger))
+				taggers[ns] = append(taggers[ns], tgrs.Get(string(tagger), nil))
 				continue
 			}
 			if len(tagger_map) != 1 {
@@ -220,9 +242,8 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 					"map must contain only one element (ns: %v): %v", ns, tagger_map)
 				continue
 			}
-			// TODO: use config value here
-			for tagger, _ := range tagger_map {
-				taggers[ns] = append(taggers[ns], tagger)
+			for tagger, node := range tagger_map {
+				taggers[ns] = append(taggers[ns], tgrs.Get(tagger, &node))
 				continue
 			}
 		}
@@ -231,16 +252,57 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 	log.Debugf("Using taggers: %v", taggers)
 
 	// Walk the paths
+	var (
+		context = make(map[string]map[string]interface{})
+		ctx map[string]interface{}
+		ctx_tags sort.StringSlice
+	)
+
 	for _, path := range paths {
 		log.Tracef("Processing path: %s", path)
 
 		walk_iter := func (path string, info os.FileInfo, err error) error {
 			if err != nil {
 				log.Tracef(" - path: %v (info: %v), error: %v", path, info, err)
+				return nil
 			}
-			if info != nil && info.IsDir() {
-				log.Tracef(" - dir: %v", path)
+
+			// Get context for this path or copy it from parent path
+			ctx, ok = context[path]
+			if !ok {
+				ctx = make(map[string]interface{})
+				ctx_parent, ok := context[filepath.Dir(path)]
+				if ok {
+					ctx_clone(ctx_parent, ctx)
+				}
+				context[path] = ctx
 			}
+
+			// Run all taggers
+			for _, tagger_list := range taggers {
+				// Maybe split context by ns here?
+				for _, tagger := range tagger_list {
+					tags := tagger.GetTags(path, info, &ctx)
+					if tags == nil {
+						continue
+					}
+					// Push new tags to the context
+					ctx_tags_if, ok := ctx["tags"]
+					if !ok {
+						ctx_tags = sort.StringSlice{}
+					} else {
+						ctx_tags = ctx_tags_if.(sort.StringSlice)
+					}
+					for _, tag := range tags {
+						if ctx_tags.Search(tag) < 0 {
+							ctx_tags = append(ctx_tags, tag)
+						}
+					}
+					ctx_tags.Sort()
+					ctx["tags"] = ctx_tags
+				}
+			}
+
 			return nil
 		}
 
