@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"bytes"
 	"encoding/gob"
+	re "regexp"
 	"github.com/hoisie/mustache"
 	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
@@ -74,6 +75,26 @@ func ctx_clone(src, dst interface{}) {
 
 // Used to keep set of tags as keys.
 type ctx_tagset map[string]bool
+
+
+// Parsed filters.
+type path_filter struct {
+	verdict bool
+	pattern *re.Regexp
+}
+type path_filters []path_filter
+
+// Match path against a list of regexp-filters and return whether it
+//  should be processed or not.
+func (filters *path_filters) match(path string) bool {
+	for _, filter := range *filters {
+		if filter.pattern.Match([]byte(path)) {
+			return filter.verdict
+		}
+	}
+	return true
+}
+
 
 func init() {
 	gob.Register(ctx_tagset{})
@@ -159,19 +180,27 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 	// Configure logging
 	log = logging.Get("codegen.main")
 
-	conf_logging, err := yaml.Child(config.Root, ".logging")
-	if err != nil {
+	// Common processing vars
+	var (
+		ok bool
+		node yaml.Node
+		config_map yaml.Map
+		config_list yaml.List
+	)
+
+	node, err = yaml.Child(config.Root, ".logging")
+	if err != nil || node == nil {
 		logging.DefaultSetup()
-		log.Warnf("Failed to setup logging: %#v", err)
+		log.Debugf("No logging config defined (err: %#v), using defaults", err)
 	} else {
 		func() {
-			conf_logging_map, ok := conf_logging.(yaml.Map)
+			config_map, ok = node.(yaml.Map)
 			if !ok {
 				logging.DefaultSetup()
 				log.Error("'logging' config section is not a map, ignoring")
 				return
 			}
-			err = log_setup.SetupYAML(&conf_logging_map)
+			err = log_setup.SetupYAML(&config_map)
 			if err != nil {
 				logging.DefaultSetup()
 				log.Errorf("Failed to configure logging: %v", err)
@@ -181,17 +210,54 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 	}
 	log_init = true
 
-	config_map := config.Root.(yaml.Map)
+	// Configure filtering
+	filters := path_filters{}
+	node, err = yaml.Child(config.Root, ".filter")
+	if err != nil || node == nil {
+		log.Debug("No path-filters configured")
+	} else {
+		config_list, ok = node.(yaml.List)
+		if !ok {
+			log.Fatal("'filters' must be a list of string patterns")
+			os.Exit(1)
+		}
+		for _, node := range config_list {
+			pattern, ok := node.(yaml.Scalar)
+			if !ok {
+				log.Errorf("Pattern must be a string: %v", node)
+				continue
+			}
+			filter, pattern_str := path_filter{}, strings.Trim(string(pattern), "'")
+			filter.verdict = strings.HasPrefix(pattern_str, "+")
+			if !filter.verdict && !strings.HasPrefix(pattern_str, "-") {
+				log.Errorf("Pattern must start with either '+' or '-': %v", pattern_str)
+				continue
+			}
+			pattern_str = pattern_str[1:]
+			filter.pattern, err = re.Compile(pattern_str)
+			if err != nil {
+				log.Errorf("Failed to compile pattern (%v) as regexp: %v", pattern_str, err)
+				continue
+			}
+			filters = append(filters, filter)
+		}
+	}
 
 	// Get the list of paths to process
-	node, ok := config_map["paths"]
+	config_map, ok = config.Root.(yaml.Map)
+	if !ok {
+		log.Fatal("Config must be a map and have 'paths' key")
+		os.Exit(1)
+	}
+
+	node, ok = config_map["paths"]
 	if !ok {
 		log.Fatal("'paths' list must be defined in config")
 		os.Exit(1)
 	}
 
 	var paths []string
-	config_list, ok := node.(yaml.List)
+	config_list, ok = node.(yaml.List)
 	if !ok {
 		path, ok := node.(yaml.Scalar)
 		if !ok {
@@ -293,6 +359,17 @@ Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": co
 		walk_iter := func (path string, info os.FileInfo, err error) error {
 			if err != nil {
 				log.Debugf(" - path: %v (info: %v), error: %v", path, info, err)
+				return nil
+			}
+
+			path_match := path
+			if info.IsDir() {
+				path_match += "/"
+			}
+			if !filters.match(path_match) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
 				return nil
 			}
 

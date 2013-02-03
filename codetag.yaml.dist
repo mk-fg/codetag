@@ -1,7 +1,35 @@
+# codetag tool configuration file
+
 # Paths to scan, "~" will be expanded to $HOME or pw_dir
 paths:
   - ~/hatch/codetag
   - ~/hatch/go
+
+
+# List of filters for paths to crawl and files to tag
+filter:
+  # Go regexp patterns to match relative (to source.path, starting with "/") paths to tag.
+  # Patterns are matched against each path in order they're listed here.
+  # Each pattern must start with "+" or "-", "+" meaning that matched path will
+  #  be tagged/traversed and "-" for the opposite.
+  # Leaf directories are matched with the trailing slash
+  #  (as with rsync) to be distinguishable from files with the same name.
+  # If path doesn't match any regexp on the list, it will be tagged.
+  # Excluded directories won't be traversed.
+  # Go/re2 regexp syntax ref: https://code.google.com/p/re2/wiki/Syntax
+  # Enclose regexps in single quotes to make sure "-regexp" won't be interpreted as yaml list.
+  #
+  # Examples:
+  #  - '+/\.git/config$'   # tag git repository config files
+  #  - '-/\.git/.'   # *don't* tag any repository objects
+  #  - '-/\.(hg|bzr|redo)/'  # these won't be traversed at all
+  #  - '-(?i)/\.?svn(/|ignore)$'   # exclude svn (or .svn) paths (case-insensitive) and ignore-lists
+
+  - '+/\.git/config$'
+  - '-/\.git/.'
+  - '-/\.(hg|bzr|redo)/'
+  - '-(?i)/\.?svn(/|ignore)$'
+
 
 # Taggers are configurable plugins that return a string tag for a file,
 #  given it's location. What they do to that path (or files) is plugin-specific.
