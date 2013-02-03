@@ -42,7 +42,7 @@ taggers:
     - bitbucket
     - local:
       host: fraggod.net
-  lang: lang_detect_ext
+  lang: lang_detect_paths
   scm: scm_detect_paths
 
 # See go-logging docs (github.com/mk-fg/go-logging) for format specs
