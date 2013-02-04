@@ -285,7 +285,7 @@ Options:`))
 	taggers := make(map[string][]tgrs.Tagger)
 
 	init_tagger := func(ns, name string, config *yaml.Node) {
-		tagger, err := tgrs.Get(name, config)
+		tagger, err := tgrs.Get(name, config, log)
 		if err != nil {
 			log.Warnf("Failed to init tagger %v (ns: %v): %v", ns, name, err)
 		} else {

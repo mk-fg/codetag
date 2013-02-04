@@ -38,10 +38,12 @@ filter:
 # Special-case namespace "_none" can be used to use returned tags w/o prefix.
 taggers:
   host:
-    - github
-    - bitbucket
-    - local:
-      host: fraggod.net
+    - git.host:
+      github: '^github\.com$'
+      local: '^fraggod\.net$'
+    - hg.host:
+      host: bitbucket.net
+      tag: bitbucket
   lang: lang_detect_paths
   scm: scm_detect_paths
 
