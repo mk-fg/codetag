@@ -385,8 +385,8 @@ Options:`))
 	}
 	tmsu_log_pipe := &pipe
 
-	for _, path := range paths {
-		log.Tracef("Processing path: %s", path)
+	for _, root := range paths {
+		log.Tracef("Processing path: %s", root)
 
 		walk_iter := func (path string, info os.FileInfo, err error) (ret_err error) {
 			if err != nil {
@@ -394,7 +394,10 @@ Options:`))
 				return
 			}
 
-			path_match := path
+			if !strings.HasPrefix(path, root) {
+				panic(fmt.Errorf("filepath.Walk went outside of root path (%v): %v", root, path))
+			}
+			path_match := path[len(root):]
 			if info.IsDir() {
 				path_match += "/"
 			}
@@ -476,14 +479,14 @@ Options:`))
 			return
 		}
 
-		path_ext, err := path_t(path).ExpandUser()
+		path_ext, err := path_t(root).ExpandUser()
 		if err == nil {
-			path = string(path_ext)
+			root = string(path_ext)
 		}
 
-		err = filepath.Walk(path, walk_iter)
+		err = filepath.Walk(root, walk_iter)
 		if err != nil {
-			log.Errorf("Failed to process path: %s", path)
+			log.Errorf("Failed to process path: %s", root)
 		}
 	}
 
