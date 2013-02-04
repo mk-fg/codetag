@@ -42,8 +42,7 @@ taggers:
       github: '^github\.com$'
       local: '^fraggod\.net$'
     - hg.host:
-      host: bitbucket.net
-      tag: bitbucket
+      bitbucket: '^bitbucket\.org$'
   lang: lang_detect_paths
   scm: scm_detect_paths
 

@@ -109,6 +109,8 @@ var (//+as-is
 	git_section_remote = re.MustCompile(`^\s*remote\s+"[^"]+"\s*$`)
 	git_url_pattern = re.MustCompile(`^\s*` +
 		`(git@|https?://([^:@]+(:[^@]+)?@)?)` + `(?P<host>[^:/]+)` + `(:|/)`)
+	hg_url_pattern = re.MustCompile(`^\s*` +
+		`https?://([^:@]+(:[^@]+)?@)?` + `(?P<host>[^:/]+)` + `/`)
 )//-as-is
 
 func tagger_scm_host_confproc(name string, config *yaml.Node, log *logging.Logger) interface{} {
@@ -185,18 +187,52 @@ func tagger_git_host(name string, config interface{}, log *logging.Logger, path 
 	return
 }
 
+func tagger_hg_host(name string, config interface{}, log *logging.Logger, path string, info os.FileInfo, ctx *map[string]interface{}) (tags []string) {
+	if config == nil || !info.IsDir() {
+		return
+	}
 
-// map of available Tagger functions
+	hgrc_path := filepath.Join(path, ".hg/hgrc")
+	info, err := os.Stat(hgrc_path)
+	if err != nil || info == nil || info.IsDir() {
+		return
+	}
+	hgrc, err := ini.LoadFile(hgrc_path)
+	if err != nil {
+		log.Warnf("Failed to parse hgrc config (%v): %v", hgrc_path, err)
+		return
+	}
+
+	for _, v := range hgrc.Section("paths") {
+		host := string(hg_url_pattern.ExpandString([]byte{},
+			"${host}", v, hg_url_pattern.FindStringSubmatchIndex(v)))
+		tag_map, ok := config.(map[string]*re.Regexp)
+		if !ok {
+			panic(config)
+		}
+		for k, regexp := range tag_map {
+			if regexp.MatchString(host) {
+				// Can create duplicates, but it doesn't matter, since tags are de-duplicated on output/apply
+				tags = append(tags, k)
+			}
+		}
+	}
+
+	return
+}
+
+
+// Map of available Tagger functions
 var taggers = map[string]tagger_func {
 	"scm_detect_paths": tagger_scm_detect_paths,
 	"lang_detect_paths": tagger_lang_detect_paths,
 	"git.host": tagger_git_host,
+	"hg.host": tagger_hg_host,
 }
-	// "host.bitbucket": tagger_host_bitbucket
 var taggers_confproc = map[string]tagger_confproc {
 	"git.host": tagger_scm_host_confproc,
+	"hg.host": tagger_scm_host_confproc,
 }
-	// "host.bitbucket": tagger_scm_host_confproc
 
 
 func init() {
