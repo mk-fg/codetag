@@ -18,5 +18,3 @@ sdks, temp build paths) and - especially for simple grep - huge body of other
 data there.
 
 [tmsu](http://tmsu.org/)-provided fuse-fs might make it even easier.
-
-Under heavy development, not ready yet.

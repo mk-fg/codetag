@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"os/user"
+	"os/exec"
 	"path/filepath"
 	"bytes"
 	"encoding/gob"
@@ -88,6 +89,34 @@ func (filters *path_filters) match(path string) bool {
 		}
 	}
 	return true
+}
+
+
+// Writer which line-buffers data, passing each line to log_func
+type log_pipe struct {
+	log_func func(string)
+	buff string ""
+}
+
+func (pipe *log_pipe) Log(line string) {
+	pipe.log_func(strings.TrimSpace(line))
+}
+
+func (pipe *log_pipe) Write(p []byte) (n int, err error) {
+	pipe.buff += string(p)
+	for strings.Contains(pipe.buff, "\n") {
+		lines := strings.SplitN(pipe.buff, "\n", 2)
+		pipe.Log(lines[0])
+		pipe.buff = lines[1]
+	}
+	return len(p), nil
+}
+
+func (pipe *log_pipe) Flush() {
+	if len(pipe.buff) > 0 {
+		pipe.Log(pipe.buff)
+	}
+	pipe.buff = ""
 }
 
 
@@ -349,13 +378,20 @@ Options:`))
 		ctx_tags ctx_tagset
 	)
 
+	log_tmsu := logging.Get("codegen.main.tmsu")
+	pipe := log_pipe{}
+	pipe.log_func = func(line string) {
+		log_tmsu.Debug(line)
+	}
+	tmsu_log_pipe := &pipe
+
 	for _, path := range paths {
 		log.Tracef("Processing path: %s", path)
 
-		walk_iter := func (path string, info os.FileInfo, err error) error {
+		walk_iter := func (path string, info os.FileInfo, err error) (ret_err error) {
 			if err != nil {
 				log.Debugf(" - path: %v (info: %v), error: %v", path, info, err)
-				return nil
+				return
 			}
 
 			path_match := path
@@ -366,7 +402,7 @@ Options:`))
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
-				return nil
+				return
 			}
 
 			// Get context for this path or copy it from parent path
@@ -412,7 +448,7 @@ Options:`))
 			}
 
 			if info.IsDir() {
-				return nil
+				return
 			}
 
 			file_tags := []string{}
@@ -426,9 +462,18 @@ Options:`))
 					file_tags = append(file_tags, ns + ":" + tag)
 				}
 			}
-			log.Debugf(" - file: %v, tags: %v", path, file_tags)
 
-			return nil
+			log.Tracef(" - file: %v, tags: %v", path, file_tags)
+			cmd := exec.Command("tmsu", "tag", path)
+			cmd.Args = append(cmd.Args, file_tags...)
+			cmd.Stdout, cmd.Stderr = tmsu_log_pipe, tmsu_log_pipe
+			err = cmd.Run()
+			if err != nil {
+				log.Fatalf("Failure running tmsu (file: %v, tags: %v): %v", path, file_tags, err)
+			}
+			tmsu_log_pipe.Flush()
+
+			return
 		}
 
 		path_ext, err := path_t(path).ExpandUser()
