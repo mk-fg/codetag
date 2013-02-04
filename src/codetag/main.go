@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"bytes"
 	"encoding/gob"
+	"text/template"
 	re "regexp"
-	"github.com/hoisie/mustache"
 	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"codetag/log_setup"
@@ -20,11 +20,6 @@ import (
 
 // Path with a few extra convenience methods.
 type path_t string
-
-// Render path in human-readable form (for moustache templates).
-func (path path_t) Render() string {
-	return fmt.Sprint(path)
-}
 
 // Expand paths like "~/path" using HOME env var or /etc/passwd.
 func (path path_t) ExpandUser() (path_ret path_t, err error) {
@@ -105,19 +100,20 @@ func main() {
 	config_search[0] = path_t(os.Args[0] + ".yaml")
 
 	flag.Usage = func() {
-		fmt.Println(mustache.Render( `usage: {{{cmd}}} [ <options> ]
+		tpl := template.Must(template.New("test").Parse(""+
+			`usage: {{.cmd}} [ <options> ]
 
 Index code files, using parameters specified in the config file.
 If not specified exmplicitly, config file is searched within the
 following paths (in that order):
-{{#paths}}
-  - {{{Render}}}
-{{/paths}}
+{{range .paths}}  - {{.}}
+{{end}}
 Examples:
-  % {{{cmd}}}
-  % {{{cmd}}} --config config.yaml
+  % {{.cmd}}
+  % {{.cmd}} --config config.yaml
 
-Options:`, map[string]string{"cmd": os.Args[0]}, map[string][]path_t{"paths": config_search} ))
+Options:`))
+		tpl.Execute(os.Stdout, map[string]interface{}{"cmd": os.Args[0], "paths": config_search})
 		flag.PrintDefaults()
 	}
 
