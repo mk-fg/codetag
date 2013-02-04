@@ -1,13 +1,14 @@
 # -*- mode: sh -*-
 
 PROJECT=codetag
-BIN_FILE=$PROJECT
 
 export GOPATH=$PWD
 
 DEPS=$(find src -type f -name '*.go')
 
 redo-ifchange $DEPS
+
+mkdir -p bin
 
 # Local pre/post-processing, if used with git
 grep -q filter=golang .gitattributes 2>/dev/null\
@@ -34,7 +35,7 @@ rm -f "$output" ||:
 [[ -z "$gpp" ]] || ls -1 $DEPS | xargs -n1 $gpp uncurl -b
 
 [[ $err -ne 0 ]] || {
-	gawk 'match($2, /upload=(.*)/, a) {print $1, a[1]}' .gitattributes |
+	gawk 'match($2, /upload=(.*)/, a) {print $1, a[1]}' .gitattributes 2>/dev/null |
 	while read bin upload; do
 		[[ "$bin" = "$1" || "$bin" = "/$1" ]] || continue
 		dst="$upload/$(basename "$1")"
