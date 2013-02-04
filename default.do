@@ -35,6 +35,7 @@ rm -f "$output" ||:
 [[ -z "$gpp" ]] || ls -1 $DEPS | xargs -n1 $gpp uncurl -b
 
 [[ $err -ne 0 ]] || {
+	# Upload to destinations, listed in .gitattributes, if any
 	gawk 'match($2, /upload=(.*)/, a) {print $1, a[1]}' .gitattributes 2>/dev/null |
 	while read bin upload; do
 		[[ "$bin" = "$1" || "$bin" = "/$1" ]] || continue
@@ -46,6 +47,13 @@ rm -f "$output" ||:
 			mv "$dst_tmp" "$dst" ||\
 			{ rm -f "$dst_tmp"; echo "Failed to upload $bin to $dst"; }
 	done >&2
+	# Symlink to destinations, listed in .gitattributes, if any
+	gawk 'match($2, /link=(.*)/, a) {print $1, a[1]}' .gitattributes 2>/dev/null |
+	while read bin link_dst; do
+		[[ "$bin" = "$1" || "$bin" = "/$1" ]] || continue
+		dst="${link_dst}/$(basename "$1")"
+		ln -sf "$(realpath "$1")" "$dst"
+	done
 }
 
 exit $err
