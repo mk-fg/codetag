@@ -203,7 +203,7 @@ Options:`))
 	}
 
 	// Configure logging
-	log = logging.Get("codegen.main")
+	log = logging.Get("codetag")
 
 	// Common processing vars
 	var (
@@ -378,7 +378,7 @@ Options:`))
 		ctx_tags ctx_tagset
 	)
 
-	log_tmsu := logging.Get("codegen.main.tmsu")
+	log_tmsu := logging.Get("codetag.tmsu")
 	pipe := log_pipe{}
 	pipe.log_func = func(line string) {
 		log_tmsu.Debug(line)
