@@ -80,14 +80,16 @@ type path_tag_pattern struct {
 var (
 	// Only more-or-less plaintext (greppable) files for now
 	lang_ext_map = map[string]string{//+as-is
-		`py|tac`: `py`, `go`: `go`, `c(pp|xx)?|h`: `c`, `js|coffee`: `js`,
-		`co?nf|cfg|ini`: `conf`, `unit|service|taget|mount|desktop|rules`: `conf`,
-		`x?htm(l[45]?)?|css`: `html`, `xml|xsl`: `xml`,
-		`patch|diff`: `diff`, `(ba|z|k|c|fi)?sh|env`: `sh`,
-		`p(l|m)`: `perl`, `php[45]?`: `php`, `[ce]l|lisp`: `lisp`, `hs`: `haskell`,
-		`md|markdown`: `md`, `rst`: `rst`,
-		`ya?ml`: `yaml`, `json(\.txt)?`: `json`, `do`: `redo`, `mk|a[cm]`: `make` }//-as-is
+		`py|tac`: `py`, `go`: `go`, `c(c|pp|xx)?|h`: `c`, `js|coffee`: `js`,
+		`co?nf|cf|cfg|ini`: `conf`, `unit|service|taget|mount|desktop|rules`: `conf`,
+		`x?htm(l[45]?)?|css|less`: `html`, `xml|xsl|xsd`: `xml`, `kml`: `kml`, `csv`: `csv`,
+		`patch|diff`: `diff`, `(ba|z|k|c|fi)?sh|env|exheres-\d+|ebuild|initd?`: `sh`, `sql`: `sql`,
+		`p(l|m)`: `perl`, `ph(p[45t]?|tml)`: `php`, `[ce]l|lisp|rkt|scm|jl`: `lisp`,
+		`hs`: `haskell`, `rb`: `ruby`, `lua`: `lua`,
+		`(?i)md|markdown`: `md`, `rst`: `rst`, `rdf`: `rdf`, `xul`: `xul`,
+		`ya?ml`: `yaml`, `jso?n(\.txt)?`: `json`, `do`: `redo`, `mk|a[cm]`: `make` }//-as-is
 	lang_path_map = map[string]string{//+as-is
+		`rakefile`: `ruby`,
 		`/config$`: `conf`, `/Makefile$`: `make`, `/zsh/_[^/]+$`: `sh`, `patch`: `diff` }//-as-is
 	lang_regexps = []path_tag_pattern{}
 )
@@ -239,7 +241,7 @@ func init() {
 	// Compile patterns for tagger_lang_detect_paths
 	for re_base, tag := range lang_ext_map {
 		re_base = "\\.(" + re_base +
-			")(\\.(default|in|(src-)?bak|backup|example|sample|dist|\\w+-new))?$"
+			")(\\.(in|tpl|(src-)?bak|backup|default|example|sample|dist|\\w+-new)|_t)?$"
 		lang_regexps = append(lang_regexps, path_tag_pattern{re.MustCompile(re_base), tag})
 	}
 	for re_base, tag := range lang_path_map {
