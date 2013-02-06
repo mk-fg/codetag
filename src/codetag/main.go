@@ -49,8 +49,11 @@ func (path path_t) ExpandUser() (path_ret path_t, err error) {
 // First one is dynamic, depending on argv[0].
 var config_search = []path_t{"", "~/.codetag.yaml", "/etc/codetag.yaml"}
 
+// CLI
 // Config file that is used.
 var config_path string
+// Don't actually run tmsu
+var dry_run bool
 
 
 // Clone context object using gob serialization
@@ -141,12 +144,14 @@ Examples:
   % {{.cmd}}
   % {{.cmd}} --config config.yaml
 
-Options:`))
+Options:
+`))
 		tpl.Execute(os.Stdout, map[string]interface{}{"cmd": os.Args[0], "paths": config_search})
 		flag.PrintDefaults()
 	}
 
 	flag.StringVar(&config_path, "config", "", "Configuration file to use.")
+	flag.BoolVar(&dry_run, "dry-run", false, "Don't actually run tmsu, just process all paths.")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Fprintf(os.Stderr, "Error: no command-line"+
@@ -467,14 +472,16 @@ Options:`))
 			}
 
 			log.Tracef(" - file: %v, tags: %v", path, file_tags)
-			cmd := exec.Command("tmsu", "tag", path)
-			cmd.Args = append(cmd.Args, file_tags...)
-			cmd.Stdout, cmd.Stderr = tmsu_log_pipe, tmsu_log_pipe
-			err = cmd.Run()
-			if err != nil {
-				log.Fatalf("Failure running tmsu (file: %v, tags: %v): %v", path, file_tags, err)
+			if !dry_run {
+				cmd := exec.Command("tmsu", "tag", path)
+				cmd.Args = append(cmd.Args, file_tags...)
+				cmd.Stdout, cmd.Stderr = tmsu_log_pipe, tmsu_log_pipe
+				err = cmd.Run()
+				if err != nil {
+					log.Fatalf("Failure running tmsu (file: %v, tags: %v): %v", path, file_tags, err)
+				}
+				tmsu_log_pipe.Flush()
 			}
-			tmsu_log_pipe.Flush()
 
 			return
 		}
