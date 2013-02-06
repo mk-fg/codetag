@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"os"
 	"fmt"
+	"io"
 	"bufio"
 	"strings"
 	re "regexp"
@@ -70,7 +71,7 @@ func Get(name string, config *yaml.Node, log *logging.Logger) (Tagger, error) {
 				if !ok {
 					panic(fmt.Errorf("Failed to process tags from context: %v", *ctx))
 				}
-				if len(tags_prev) > 1 {
+				if len(tags_prev) > 0 {
 					return
 				}
 			}
@@ -85,7 +86,7 @@ func Get(name string, config *yaml.Node, log *logging.Logger) (Tagger, error) {
 var scm_paths = map[string]string{".git": "git", ".hg": "hg", ".bzr": "bzr", ".svn": "svn"}
 func tagger_scm_detect_paths(name string, config interface{}, log *logging.Logger, path string, info os.FileInfo, ctx *map[string]interface{}) (tags []string) {
 	if !info.IsDir() {
-		return nil
+		return
 	}
 	for dir, tag := range scm_paths {
 		info, err := os.Stat(filepath.Join(path, dir))
@@ -111,7 +112,7 @@ var (
 		`py|tac`: `py`, `go`: `go`, `c(c|pp|xx|\+\+)?|hh?|lex|y(acc)?`: `c`,
 		`js(o?n(\.txt)?)?|coffee`: `js`, `co?nf|cf|cfg|ini`: `conf`,
 		`unit|service|taget|mount|desktop|rules`: `conf`,
-		`[sx]?htm(l[45]?)?|css|less`: `html`, `x[ms]lxsd|dbk`: `xml`,
+		`[sx]?htm(l[45]?)?|css|less`: `html`, `x[ms]l|xsd|dbk`: `xml`,
 		`kml`: `kml`, `sgml|dtd`: `sgml`,
 		`patch|diff|pat`: `diff`, `(ba|z|k|c|fi)?sh|env|exheres-\d+|ebuild|initd?`: `sh`, `sql`: `sql`,
 		`p(l|m|erl|od)|al`: `perl`, `ph(p[s45t]?|tml)`: `php`, `[cejm]l|li?sp|rkt|sc[mh]|stk|ss`: `lisp`,
@@ -137,8 +138,8 @@ var (
 )
 
 func tagger_lang_detect_paths(name string, config interface{}, log *logging.Logger, path string, info os.FileInfo, ctx *map[string]interface{}) (tags []string) {
-	if info.IsDir() {
-		return nil
+	if info.Mode() & os.ModeType != 0 {
+		return
 	}
 	for _, filter := range lang_path_regexps {
 		if filter.pattern.MatchString(path) {
@@ -149,8 +150,8 @@ func tagger_lang_detect_paths(name string, config interface{}, log *logging.Logg
 }
 
 func tagger_lang_detect_shebang(name string, config interface{}, log *logging.Logger, path string, info os.FileInfo, ctx *map[string]interface{}) (tags []string) {
-	if info.IsDir() {
-		return nil
+	if info.Mode() & os.ModeType != 0 {
+		return
 	}
 
 	src, err := os.Open(path)
@@ -161,7 +162,9 @@ func tagger_lang_detect_shebang(name string, config interface{}, log *logging.Lo
 	src_r := bufio.NewReader(src)
 	line, err := src_r.ReadString('\n')
 	if err != nil {
-		log.Warnf("Failed to read line from file (%v): %v", src, err)
+		if err != io.EOF {
+			log.Warnf("Failed to read first line from file (%v): %v", path, err)
+		}
 		return
 	}
 
