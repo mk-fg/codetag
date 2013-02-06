@@ -233,7 +233,7 @@ func tagger_scm_config_git(name string, config interface{}, log *logging.Logger,
 
 	git_conf_path := filepath.Join(path, ".git/config")
 	info, err := os.Stat(git_conf_path)
-	if err != nil || info == nil || info.IsDir() {
+	if err != nil || info == nil || info.Mode() & os.ModeType != 0 {
 		return
 	}
 	git_conf, err := ini.LoadFile(git_conf_path)
@@ -275,7 +275,7 @@ func tagger_scm_config_hg(name string, config interface{}, log *logging.Logger, 
 
 	hgrc_path := filepath.Join(path, ".hg/hgrc")
 	info, err := os.Stat(hgrc_path)
-	if err != nil || info == nil || info.IsDir() {
+	if err != nil || info == nil || info.Mode() & os.ModeType != 0 {
 		return
 	}
 	hgrc, err := ini.LoadFile(hgrc_path)

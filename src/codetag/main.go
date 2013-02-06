@@ -452,7 +452,8 @@ Options:
 				}
 			}
 
-			if info.IsDir() {
+			// Attach tags only to files
+			if info.Mode() & os.ModeType != 0 {
 				return
 			}
 
