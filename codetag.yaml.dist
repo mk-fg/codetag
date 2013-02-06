@@ -4,6 +4,7 @@
 paths:
   - ~/hatch/codetag
   - ~/hatch/go
+  - ~/hatch/fgtk
 
 
 # List of filters for paths to crawl and files to tag
@@ -36,20 +37,28 @@ filter:
 # "taggers" should be a map, with tag namespace (e.g. "lang" part in "lang:py")
 #  as a key and either scalar plugin name or map with "name: config..." as value.
 # Special-case namespace "_none" can be used to use returned tags w/o prefix.
+# Universally-recognized "fallback" config value, if set to "true", will make
+#  tagger run only if previous taggers haven't added anything to the same namespace.
 taggers:
   host:
-    - git.host:
-      github: '^github\.com$'
-      local: '^fraggod\.net$'
-    - hg.host:
-      bitbucket: '^bitbucket\.org$'
-  lang: lang_detect_paths
+    - scm_config_git:
+      host_tags:
+        github: '^github\.com$'
+        local: '^fraggod\.net$'
+    - scm_config_hg:
+      host_tags:
+        bitbucket: '^bitbucket\.org$'
+  lang:
+    - lang_detect_paths
+    - lang_detect_shebang:
+      # don't peek into files if extension was recognized
+      fallback: true
   scm: scm_detect_paths
 
 # See go-logging docs (github.com/mk-fg/go-logging) for format specs
 logging:
   loggers:
-    root: DEBUG,console
+    root: TRACE,console
     vaughan0: FATAL
 
   console:

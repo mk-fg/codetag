@@ -72,9 +72,6 @@ func ctx_clone(src, dst interface{}) {
 	}
 }
 
-// Used to keep set of tags as keys.
-type ctx_tagset map[string]bool
-
 
 // Parsed filters.
 type path_filter struct {
@@ -124,7 +121,7 @@ func (pipe *log_pipe) Flush() {
 
 
 func init() {
-	gob.Register(ctx_tagset{})
+	gob.Register(tgrs.CtxTagset{})
 }
 
 
@@ -380,7 +377,7 @@ Options:
 	var (
 		context = make(map[string]map[string]map[string]interface{})
 		ctx map[string]map[string]interface{}
-		ctx_tags ctx_tagset
+		ctx_tags tgrs.CtxTagset
 	)
 
 	log_tmsu := logging.Get("codetag.tmsu")
@@ -441,9 +438,9 @@ Options:
 					// Push new tags to the context
 					ctx_tags_if, ok := ctx_ns["tags"]
 					if !ok {
-						ctx_tags = make(ctx_tagset, len(taggers))
+						ctx_tags = make(tgrs.CtxTagset, len(taggers))
 					} else {
-						ctx_tags = ctx_tags_if.(ctx_tagset)
+						ctx_tags = ctx_tags_if.(tgrs.CtxTagset)
 					}
 					for _, tag := range tags {
 						_, ok = ctx_tags[tag]
@@ -465,7 +462,7 @@ Options:
 				if !ok {
 					continue
 				}
-				ctx_tags = ctx_tags_if.(ctx_tagset)
+				ctx_tags = ctx_tags_if.(tgrs.CtxTagset)
 				for tag, _ := range ctx_tags {
 					file_tags = append(file_tags, ns + ":" + tag)
 				}
