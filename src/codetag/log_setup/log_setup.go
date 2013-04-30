@@ -2,123 +2,81 @@ package log_setup
 
 import (
 	"fmt"
-	"strings"
 	"github.com/mk-fg/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 )
 
 
-// Loads the appropriate plugin and creates an outputter, given a configuration section.
-func newOutputterConfig(cp *yaml.Map) (logging.Outputter, error) {
-	config := *cp
+type YAMLConfig yaml.Map
 
-	// Convert yaml.Map to map[string]string{}
-	config_map := map[string]string{}
-	for k, node := range config {
+func (config YAMLConfig) LoggerSettings() (loggers map[string]string) {
+	section, ok := config["loggers"]
+	if !ok {
+		panic(fmt.Errorf("'loggers' section is must be a map"))
+	}
+	section_map, ok := section.(yaml.Map)
+	if !ok {
+		panic(fmt.Errorf("'loggers' section is missing"))
+	}
+
+	loggers = map[string]string{}
+	for k, node := range section_map {
 		v, ok := node.(yaml.Scalar)
 		if !ok {
-			return nil, fmt.Errorf("Invalid type (must be string, key: %q): %v", k, node)
+			panic(fmt.Errorf("Logging level must be string: %v", v))
 		}
-		config_map[k] = string(v)
+		loggers[k] = string(v)
 	}
 
-	// Get/create plugin/outputter from the "type" option
-	name, ok := config_map["type"]
-	if !ok {
-		return nil, fmt.Errorf("Plugin name not specified: %v", config_map)
-	}
-	plugin, err := logging.GetOutputPlugin(name)
-	if plugin == nil {
-		return nil, err
-	}
-	output, err := plugin.CreateOutputter(config_map)
-	if err != nil {
-		return nil, err
-	}
+	return
+}
 
-	// Check for the "threshold" option
-	thresh, ok := config_map["threshold"]
-	if ok {
-		level, ok := logging.ReverseLevelStrings[strings.ToUpper(thresh)]
-		if ok {
-			output = logging.ThresholdOutputter{level, output}
-		} else {
-			return nil, fmt.Errorf("Invalid threshold: %v", thresh)
+func (config YAMLConfig) Plugins() (plugins []logging.PluginConfig) {
+	var (
+		key string
+		options map[string]string
+	)
+	for key, section := range config {
+		if key == "loggers" {
+			continue
+		}
+		section_map, ok := section.(yaml.Map)
+		if !ok {
+			panic(fmt.Errorf("Failed to init Outputter: %s", key))
+		}
+		options = map[string]string{}
+		for k, node := range section_map {
+			v, ok := node.(yaml.Scalar)
+			if !ok {
+				panic(fmt.Errorf("Invalid type (must be string, key: %q): %v", k, node))
+			}
+			options[k] = string(v)
 		}
 	}
-
-	return output, nil
+		plugins = append(plugins, logging.PluginConfig{
+			Name: key,
+			Options: options,
+		})
+	return
 }
 
 
 // Configures the logging hierarchy from a YAML object
 func SetupYAML(cp *yaml.Map) (err error) {
-	var (
-		section yaml.Node
-		section_map yaml.Map
-		config = *cp
-	)
-
-	// Create outputters
-	outputters := make(map[string]logging.Outputter)
-	for key, section := range config {
-		if key != "loggers" {
-			section_map, ok := section.(yaml.Map)
-			if ok {
-				output, err := newOutputterConfig(&section_map)
-				if err == nil {
-					outputters[key] = output
-					continue
-				}
-			}
-			return fmt.Errorf("Failed to init Outputter: %s", key)
-		}
-	}
-
-	section, ok := config["loggers"]
+	var config_map interface{}
+	config_map = *cp
+	config, ok := config_map.(YAMLConfig)
 	if !ok {
-		return fmt.Errorf("'loggers' section is must be a map")
-	}
-	section_map, ok = section.(yaml.Map)
-	if !ok {
-		return fmt.Errorf("'loggers' section is missing")
+		return fmt.Errorf("Failed to process logging configuration: %s", cp)
 	}
 
-	// Setup loggers
-	for name, node := range section_map {
-		v, ok := node.(yaml.Scalar)
-		if !ok {
-			return fmt.Errorf("Logging level must be string: %v", v)
+	defer func() {
+		panic_err := recover()
+		if err == nil && panic_err != nil {
+			err, ok = panic_err.(error)
 		}
-		parts := strings.Split(string(v), ",")
-		level, ok := logging.ReverseLevelStrings[strings.ToUpper(parts[0])]
-		if !ok {
-			return fmt.Errorf("Unknown logging level: %v", v)
-		}
-		// Get the logger by its name, treating "root" as a special name
-		var logger *logging.Logger
-		if name == "root" {
-			logger = logging.Root
-		} else {
-			logger = logging.Get(name)
-		}
-		logger.Threshold = level
-		// Handle extra options
-		for _, outputKey := range parts[1:] {
-			if outputKey == "nopropagate" {
-				logger.NoPropagate = true
-			} else {
-				// Assign an outputter
-				if outputter := outputters[outputKey]; outputter != nil {
-					logger.AddOutput(outputter)
-				} else {
-					return fmt.Errorf("Unknown logging output: %v", outputKey)
-				}
-			}
-		}
-	}
+	}()
 
-	logging.Root.Configure()
-	logging.CustomSetup()
-	return nil
+	logging.SetupConfig(config)
+	return
 }

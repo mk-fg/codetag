@@ -46,6 +46,8 @@ To build the thing from source:
 		go get github.com/mk-fg/go-logging
 		go get github.com/kylelemons/go-gypsy/yaml
 
+	Be sure to update these packages when trying to build a new codetag version.
+
  * Get the code: `git clone https://github.com/mk-fg/codetag`
 
  * Build the code:
