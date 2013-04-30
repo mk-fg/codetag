@@ -43,7 +43,7 @@ To build the thing from source:
 
  * Fetch the go package deps:
 
-		go get github.com/mk-fg/go-logging
+		go get github.com/vaughan0/go-logging
 		go get github.com/kylelemons/go-gypsy/yaml
 
 	Be sure to update these packages when trying to build a new codetag version.
@@ -94,7 +94,7 @@ to set tags like "lang:py", based on path/filename patterns.
 
 "logging" and "filtering" sections might be useful to keep track of errors and
 control noise (e.g. if used from cron, set log level to WARNING there, refer to
-[go-logging](https://github.com/mk-fg/go-logging) docs for more details) or
+[go-logging](https://github.com/vaughan0/go-logging) docs for more details) or
 exclude large and irrelevant paths from tagging (e.g. insides of ".git"
 directories, as done there by default).
 

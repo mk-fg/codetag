@@ -2,7 +2,7 @@ package log_setup
 
 import (
 	"fmt"
-	"github.com/mk-fg/go-logging"
+	"github.com/vaughan0/go-logging"
 	"github.com/kylelemons/go-gypsy/yaml"
 )
 
