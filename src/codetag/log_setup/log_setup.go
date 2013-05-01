@@ -7,6 +7,19 @@ import (
 )
 
 
+func YAMLMapToStrings(yaml_map yaml.Map) (strings map[string]string) {
+	strings = map[string]string{}
+	for k, node := range yaml_map {
+		v, ok := node.(yaml.Scalar)
+		if !ok {
+			panic(fmt.Errorf("Expecting scalar value (key: %q): %v", k, node))
+		}
+		strings[k] = string(v)
+	}
+	return
+}
+
+
 type YAMLConfig yaml.Map
 
 func (config YAMLConfig) LoggerSettings() (loggers map[string]string) {
@@ -18,24 +31,10 @@ func (config YAMLConfig) LoggerSettings() (loggers map[string]string) {
 	if !ok {
 		panic(fmt.Errorf("'loggers' section is missing"))
 	}
-
-	loggers = map[string]string{}
-	for k, node := range section_map {
-		v, ok := node.(yaml.Scalar)
-		if !ok {
-			panic(fmt.Errorf("Logging level must be string: %v", v))
-		}
-		loggers[k] = string(v)
-	}
-
-	return
+	return YAMLMapToStrings(section_map)
 }
 
 func (config YAMLConfig) Plugins() (plugins []logging.PluginConfig) {
-	var (
-		key string
-		options map[string]string
-	)
 	for key, section := range config {
 		if key == "loggers" {
 			continue
@@ -44,39 +43,22 @@ func (config YAMLConfig) Plugins() (plugins []logging.PluginConfig) {
 		if !ok {
 			panic(fmt.Errorf("Failed to init Outputter: %s", key))
 		}
-		options = map[string]string{}
-		for k, node := range section_map {
-			v, ok := node.(yaml.Scalar)
-			if !ok {
-				panic(fmt.Errorf("Invalid type (must be string, key: %q): %v", k, node))
-			}
-			options[k] = string(v)
-		}
+		plugin := new(logging.PluginConfig)
+		plugin.Name, plugin.Options = key, YAMLMapToStrings(section_map)
+		plugins = append(plugins, *plugin)
 	}
-		plugins = append(plugins, logging.PluginConfig{
-			Name: key,
-			Options: options,
-		})
 	return
 }
 
 
 // Configures the logging hierarchy from a YAML object
-func SetupYAML(cp *yaml.Map) (err error) {
-	var config_map interface{}
-	config_map = *cp
-	config, ok := config_map.(YAMLConfig)
-	if !ok {
-		return fmt.Errorf("Failed to process logging configuration: %s", cp)
-	}
-
+func SetupYAML(yaml_config yaml.Map) (err error) {
 	defer func() {
 		panic_err := recover()
 		if err == nil && panic_err != nil {
-			err, ok = panic_err.(error)
+			err = panic_err.(error)
 		}
 	}()
-
-	logging.SetupConfig(config)
+	logging.SetupConfig(YAMLConfig(yaml_config))
 	return
 }

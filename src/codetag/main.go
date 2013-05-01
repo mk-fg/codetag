@@ -220,21 +220,19 @@ Options:
 		logging.DefaultSetup()
 		log.Debugf("No logging config defined (err: %#v), using defaults", err)
 	} else {
-		func() {
-			config_map, ok = node.(yaml.Map)
-			if !ok {
-				logging.DefaultSetup()
-				log.Error("'logging' config section is not a map, ignoring")
-				return
-			}
-			err = log_setup.SetupYAML(&config_map)
+		config_map, ok = node.(yaml.Map)
+		if !ok {
+			logging.DefaultSetup()
+			log.Error("'logging' config section is not a map, ignoring")
+		} else {
+			err = log_setup.SetupYAML(config_map)
 			if err != nil {
 				logging.DefaultSetup()
 				log.Errorf("Failed to configure logging: %v", err)
 			}
-		}()
-
+		}
 	}
+
 	log_init = true
 
 	// Configure filtering
