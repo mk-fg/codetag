@@ -58,7 +58,7 @@ taggers:
 # See go-logging docs (github.com/mk-fg/go-logging) for format specs
 logging:
   loggers:
-    root: TRACE,console
+    root: TRACE, console
     vaughan0: FATAL
 
   console:

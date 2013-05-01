@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"strings"
 	re "regexp"
-	"github.com/mk-fg/go-logging"
+	"github.com/vaughan0/go-logging"
 	"github.com/vaughan0/go-ini"
 	"github.com/kylelemons/go-gypsy/yaml"
 )
