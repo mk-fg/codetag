@@ -159,6 +159,7 @@ func tagger_lang_detect_shebang(name string, config interface{}, log *logging.Lo
 		log.Infof("Failed to open file (%v): %v", path, err)
 		return
 	}
+	defer src.Close()
 	src_r := bufio.NewReader(src)
 	line, err := src_r.ReadString('\n')
 	if err != nil {
