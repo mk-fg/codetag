@@ -31,11 +31,10 @@ First, install (or build) tmsu [from here](http://tmsu.org/) (single binary, see
 [README](https://bitbucket.org/oniony/tmsu/) there on how to build it from
 source).
 
-Same as tmsu, this tool itself is written in [Go](http://golang.org/), which
-doesn't require any runtime to be around for it's statically-linked binaries to
-work, so 32-bit linux binary (should work on amd64 arch as well) can be
-[downloaded here](http://fraggod.net/static/code/codetag) (usual warning about
-downloading binaries via http applies).
+Same as tmsu, this tool itself is written in [Go](http://golang.org/), binaries
+of which don't require much runtime to be around (except for basics like libc)
+[downloaded here](http://fraggod.net/static/code/codetag) (x86 ELF32) (usual
+warning about downloading binaries via http applies).
 
 To build the thing from source:
 
