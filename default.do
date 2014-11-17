@@ -22,11 +22,11 @@ go build -o "$3" "${PROJECT}" >"$output" 2>&1 || err=$?
 if [[ -z "$gpp" ]]
 then cat "$output" >&2 ||:
 else
-	gawk 'match($0, /^(src\/\S+\.go):([0-9]+):/, a) {
-		print; system("'"$gpp"' -n show -p -c2 -n" a[2] " " a[1]);
+	gawk 'match($0, /^((src|..)\/\S+\.go):([0-9]+):/, a) {
+		print; system("'"$gpp"' -n show -p -c2 -n" a[3] " " a[1]);
 		next} {print}' "$output" >&2 ||:
 	# Doesn't highlight the relevant line:
-	#  print; system("grep -nC3 . " a[1] " | grep -3 \"^" a[2] ":\"");
+	#  print; system("grep -nC3 . " a[1] " | grep -3 \"^" a[3] ":\"");
 fi
 rm -f "$output" ||:
 
