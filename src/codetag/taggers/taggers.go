@@ -106,6 +106,7 @@ type path_tag_pattern struct {
 	tag string
 }
 
+// Reminder: blocks such as following should be inside //+as-is ... //-as-is tags for golang_filter
 var (
 	// Only more-or-less plaintext (greppable) files for now
 	lang_ext_map = map[string]string{
