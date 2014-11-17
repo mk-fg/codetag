@@ -407,6 +407,7 @@ Options:
 			}
 
 			// Get context for this path or copy it from parent path
+			// XXX: some cleanup here, as this may lead to excessive memory usage
 			ctx, ok = context[path]
 			if !ok {
 				ctx_parent, ok := context[filepath.Dir(path)]
@@ -416,7 +417,9 @@ Options:
 				} else {
 					ctx = make(map[string]map[string]interface{}, len(taggers))
 				}
-				context[path] = ctx
+				if info.IsDir() {
+					context[path] = ctx
+				}
 			}
 
 			// Run all taggers

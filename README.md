@@ -12,9 +12,9 @@ End result should be tags "lang:go" + "scm:git" + "host:github" for
 
 One use of such tagging is to avoid grep-scan of a huge body of source code
 (incl. forks, sdks, temp build paths) and - especially for simple grep - huge
-body of other data, using something like `tmsu files lang:py hosted:github |
-xargs grep some_code_feature` (s/grep/ack/ or pss if appropriate) instead to
-find something you wrote a while ago (and can't recall where exactly).
+body of other data, using something like `tmsu files -0 lang:py hosted:github |
+xargs -0 grep some_code_feature` (or ack/ag/pss if appropriate) instead to find
+something you wrote a while ago (and can't recall where exactly).
 
 [tmsu](http://tmsu.org/)-provided fuse-fs might make it even easier.
 
@@ -107,16 +107,34 @@ It will run "tmsu" binary to attach detected tags to files within the scanned di
 Then, just use tmsu ([examples/docs](http://tmsu.org/)) as usual to get the list
 of files by tags, e.g.:
 
-	codetag % tmsu files scm:git lang:go
+	% tmsu files scm:git lang:go
 	src/codetag/log_setup/log_setup.go
 	src/codetag/main.go
 	src/codetag/taggers/taggers.go
 
+More advanced usage might be:
+
+	# Remember where python's mutagen module was used
+	% tmsu files -0 lang:py | xargs -0 grep mutagen
+	src/beets/beets/mediafile.py:import mutagen
+	src/beets/beets/mediafile.py:import mutagen.mp3
+	...
+
+	# Find Makefile from some github project you've seen where *.coffee stuff gets converted
+	# See codetag.yaml.dist for host_tags with scm_config_git tagger
+	% tmsu files -0 lang:make host:github | xargs -0 grep coffee
+	src/planetscape/Makefile:all: package.json coffee sass jade node_modules/.keep
+	src/planetscape/Makefile:coffee: $(JS_FILES)
+	src/planetscape/Makefile:%.js: %.coffee
+	src/planetscape/Makefile:        coffee -c $<
+	src/planetscape/Makefile:.PHONY: coffee sass jade
+	...
+
 Or use tmsu's awesome mount command:
 
-	codetag % mkdir mp
-	codetag % tmsu mount mp
-	codetag % ls -l mp/tags/scm:git/lang:go
+	% mkdir mp
+	% tmsu mount mp
+	% ls -l mp/tags/scm:git/lang:go
 	 drwxr-xr-x 0 fraggod fraggod    10 Feb  4 14:31 host:github
 	 drwxr-xr-x 0 fraggod fraggod     6 Feb  4 14:31 host:local
 	 lrwxr-xr-x 1 fraggod fraggod  2959 Feb  2 13:14 log_setup.12.go
@@ -127,3 +145,16 @@ And feel free to hack additional taggers, it's rather trivial - see
 [taggers.go](https://github.com/mk-fg/codetag/blob/master/src/codetag/taggers/taggers.go).
 
 Hope that helps, have fun!
+
+
+Known Issues
+--------------------
+
+* When tagging files, codetag keeps "context" object for each directory it
+  navigates in memory (in which e.g. "scm:git" or "host:github" tags are
+  stored).
+
+  Despite these being fairly small, navigating huge directory trees with a lot
+  of dirs inside can lead to excessive memory usage.
+
+  Should be fixed in the future with some trivial cleanup.

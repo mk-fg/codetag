@@ -1,4 +1,5 @@
 # codetag tool configuration file
+# Parsed by: github.com/kylelemons/go-gypsy/yaml
 
 # Paths to scan, "~" will be expanded to $HOME or pw_dir
 paths:
@@ -55,7 +56,7 @@ taggers:
       fallback: true
   scm: scm_detect_paths
 
-# See go-logging docs (github.com/mk-fg/go-logging) for format specs
+# See go-logging docs (github.com/vaughan0/go-logging) for format specs
 logging:
   loggers:
     root: TRACE, console
@@ -64,7 +65,8 @@ logging:
   console:
     type: console
     stream: stderr
-    format: $time $level: ($file:$line) $msg
+    # go-gypsy/yaml is kinda bad at parsing colons in strings, watch out
+    format: $time $level ($file:$line) $msg
 
   # logfile:
   #   type: file
