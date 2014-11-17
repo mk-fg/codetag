@@ -2,8 +2,6 @@
 
 PROJECT=codetag
 
-export GOPATH=$PWD
-
 DEPS=$(find src -type f -name '*.go')
 
 redo-ifchange $DEPS
