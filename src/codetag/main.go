@@ -56,6 +56,8 @@ var config_path string
 var dry_run bool
 
 
+type ctx_t map[string]map[string]interface{}
+
 // Clone context object using gob serialization
 func ctx_clone(src, dst interface{}) {
 	var err error
@@ -70,6 +72,11 @@ func ctx_clone(src, dst interface{}) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type ctx_stack_t struct {
+	slug string
+	ctx ctx_t
 }
 
 
@@ -371,8 +378,9 @@ Options:
 
 	// Walk the paths
 	var (
-		context = make(map[string]map[string]map[string]interface{})
-		ctx map[string]map[string]interface{}
+		ctx ctx_t
+		ctx_stack_tuple ctx_stack_t
+		ctx_stack = make([]ctx_stack_t, 0)
 		ctx_tags tgrs.CtxTagset
 	)
 
@@ -382,6 +390,8 @@ Options:
 		log_tmsu.Debug(line)
 	}
 	tmsu_log_pipe := &pipe
+
+	ctx_stack = append(ctx_stack, ctx_stack_t{"", make(ctx_t)})
 
 	for _, root := range paths {
 		log.Tracef("Processing path: %s", root)
@@ -407,19 +417,28 @@ Options:
 			}
 
 			// Get context for this path or copy it from parent path
-			// XXX: some cleanup here, as this may lead to excessive memory usage
-			ctx, ok = context[path]
-			if !ok {
-				ctx_parent, ok := context[filepath.Dir(path)]
-				if ok {
-					ctx = nil
-					ctx_clone(ctx_parent, &ctx)
+			n, slug := 0, path
+			for n, slug = range strings.Split(slug, fmt.Sprintf("%c", os.PathSeparator)) {
+				if len(ctx_stack) > n {
+					ctx_stack_tuple = ctx_stack[n]
+					if ctx_stack_tuple.slug == slug {
+						ctx = ctx_stack_tuple.ctx
+					} else {
+						ctx_stack_tuple = ctx_stack[n-1]
+						ctx = nil
+						ctx_clone(ctx_stack_tuple.ctx, &ctx)
+						ctx_stack[n] = ctx_stack_t{slug, ctx}
+						ctx_stack = ctx_stack[:n + 1]
+						break
+					}
 				} else {
-					ctx = make(map[string]map[string]interface{}, len(taggers))
+					ctx_stack_tuple = ctx_stack_t{slug, nil}
+					ctx_clone(ctx, &ctx_stack_tuple.ctx)
+					ctx_stack, ctx = append(ctx_stack, ctx_stack_tuple), ctx_stack_tuple.ctx
 				}
-				if info.IsDir() {
-					context[path] = ctx
-				}
+			}
+			if len(ctx_stack) > n + 1 {
+				ctx_stack = ctx_stack[:n + 1]
 			}
 
 			// Run all taggers

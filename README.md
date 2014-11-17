@@ -145,16 +145,3 @@ And feel free to hack additional taggers, it's rather trivial - see
 [taggers.go](https://github.com/mk-fg/codetag/blob/master/src/codetag/taggers/taggers.go).
 
 Hope that helps, have fun!
-
-
-Known Issues
---------------------
-
-* When tagging files, codetag keeps "context" object for each directory it
-  navigates in memory (in which e.g. "scm:git" or "host:github" tags are
-  stored).
-
-  Despite these being fairly small, navigating huge directory trees with a lot
-  of dirs inside can lead to excessive memory usage.
-
-  Should be fixed in the future with some trivial cleanup.
