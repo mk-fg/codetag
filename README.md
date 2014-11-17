@@ -42,8 +42,8 @@ To build the thing from source:
 
  * Fetch the go package deps:
 
-		go get github.com/vaughan0/go-logging
-		go get github.com/kylelemons/go-gypsy/yaml
+		go get -u github.com/vaughan0/go-logging
+		go get -u github.com/kylelemons/go-gypsy/yaml
 
 	Be sure to update these packages when trying to build a new codetag version.
 
@@ -54,8 +54,10 @@ To build the thing from source:
 		cd codetag
 		make
 
+	TODO: move/symlink stuff around, so that "go install" would work
+
  * Binary will be in the "bin/codetag" path, and can be installed via usual
-   means e.g. `sudo install -m755 bin/codetag /usr/local/bin`.
+	 means e.g. `sudo install -m755 bin/codetag /usr/local/bin`.
 
 
 Usage
