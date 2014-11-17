@@ -113,12 +113,13 @@ var (
 		`py|tac`: `py`, `go`: `go`, `c(c|pp|xx|\+\+)?|hh?|lex|y(acc)?`: `c`,
 		`js(o?n(\.txt)?)?|coffee`: `js`, `co?nf|cf|cfg|ini`: `conf`,
 		`unit|service|taget|mount|desktop|rules`: `conf`,
-		`[sx]?htm(l[45]?)?|css|less`: `html`, `x[ms]l|xsd|dbk`: `xml`,
+		`[sx]?htm(l[45]?)?|css|less|jade`: `html`, `x[ms]l|xsd|dbk`: `xml`,
 		`kml`: `kml`, `sgml|dtd`: `sgml`,
 		`patch|diff|pat`: `diff`, `(ba|z|k|c|fi)?sh|env|exheres-\d+|ebuild|initd?`: `sh`, `sql`: `sql`,
 		`p(l|m|erl|od)|al`: `perl`, `ph(p[s45t]?|tml)`: `php`, `[cejm]l|li?sp|rkt|sc[mh]|stk|ss`: `lisp`,
 		`hs`: `haskell`, `rb`: `ruby`, `lua`: `lua`, `awk`: `awk`, `tcl`: `tcl`, `java`: `java`,
-		`(?i)mk?d|markdown`: `md`, `re?st`: `rst`, `rdf`: `rdf`, `xul`: `xul`, `po`: `po`, `csv`: `csv`,
+		`(?i)mk?d|markdown`: `md`, `re?st`: `rst`, `te?xt`: `txt`, `log`: `log`,
+		`rdf`: `rdf`, `xul`: `xul`, `po`: `po`, `csv`: `csv`,
 		`f(or)?`: `fortran`, `p(as)?`: `pascal`, `dpr`: `delphi`, `ad[abs]|ad[bs].dg`: `ada`,
 		`ya?ml`: `yaml`, `jso?n(\.txt)?`: `json`, `do`: `redo`, `m[k4c]|a[cm]|cmake`: `make` }
 	lang_path_map = map[string]string{
