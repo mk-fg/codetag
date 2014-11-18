@@ -6,19 +6,19 @@ A tool to scan "development area" (paths with code projects in them) and attach
 taxonomies (e.g. source language, project hosting - github/bitbucket/etc and
 various other details).
 
-End result should be tags "lang:go" + "scm:git" + "host:github" for
-"src/codetag/main.go" file in local clone of this repo and "lang:md" +
-"meta:readme" + "scm:git" + "hosted:github" for this (README.md) file.
+End result should be tags "lang:go" + "scm:git" + "host:github" for "main.go"
+file in local clone of this repo and "lang:md" + "scm:git" + "hosted:github" for
+this (README.md) file.
 
 One use of such tagging is to avoid grep-scan of a huge body of source code
 (incl. forks, sdks, temp build paths) and - especially for simple grep - huge
 body of other data, using something like `tmsu files -0 lang:py hosted:github |
 xargs -0 grep some_code_feature` (or ack/ag/pss if appropriate) instead to find
-something you wrote a while ago (and can't recall where exactly).
+something you wrote/seen a while ago and can't recall where exactly.
 
 [tmsu](http://tmsu.org/)-provided fuse-fs might make it even easier.
 
-There are few code-indexing systems around in free software world, like
+There are a few code-indexing systems around in free software world, like
 [ctags](http://ctags.sourceforge.net/), which seem to be geared towards indexing
 source code contents, picking structural details from these, not towards just
 indexing code metadata.
