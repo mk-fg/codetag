@@ -36,28 +36,41 @@ of which don't require much runtime to be around (except for basics like libc)
 [downloaded here](http://fraggod.net/static/code/codetag) (x86 ELF32) (usual
 warning about downloading binaries via http applies).
 
-To build the thing from source:
+To build the thing from source using go packaging tools:
 
- * [Install Go](http://www.golang.org/).
+* [Install Go](http://www.golang.org/).
 
- * Fetch the go package deps:
+* Easy option: use
+	["go install"](https://golang.org/cmd/go/#hdr-Compile_and_install_packages_and_dependencies)
+	to pull in all the deps and build the tool:
 
-		go get -u github.com/vaughan0/go-logging
-		go get -u github.com/kylelemons/go-gypsy/yaml
+		go install github.com/mk-fg/codetag
 
-	Be sure to update these packages when trying to build a new codetag version.
+	This should produce no output and just exit with success.
+	Compiled binary will be in the "$GOROOT/bin" path.
 
- * Get the code: `git clone https://github.com/mk-fg/codetag`
+	That's it, all done.
 
- * Build the code:
 
-		cd codetag
-		make
+* Alternative to the above (aka the hard way): clone repo and build manually.
 
-	TODO: move/symlink stuff around, so that "go install" would work
+	* Fetch go package deps:
 
- * Binary will be in the "bin/codetag" path, and can be installed via usual
-	 means e.g. `sudo install -m755 bin/codetag /usr/local/bin`.
+			go get -u github.com/vaughan0/go-logging
+			go get -u github.com/kylelemons/go-gypsy/yaml
+
+		Be sure to update these packages when trying to build a new codetag version.
+
+	* Get the code: `git clone https://github.com/mk-fg/codetag`
+
+	* Build the code:
+
+			cd codetag
+			make
+
+	* Binary will be in the "bin/codetag" path, and can be installed to $PATH (if
+		necessary) via usual means e.g. `sudo install -m755 bin/codetag
+		/usr/local/bin`.
 
 
 Usage

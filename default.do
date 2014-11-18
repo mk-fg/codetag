@@ -2,7 +2,7 @@
 
 PROJECT=codetag
 
-DEPS=$(find src -type f -name '*.go')
+DEPS=$(find -type f -name '*.go')
 
 redo-ifchange $DEPS
 
@@ -22,7 +22,7 @@ go build -o "$3" "${PROJECT}" >"$output" 2>&1 || err=$?
 if [[ -z "$gpp" ]]
 then cat "$output" >&2 ||:
 else
-	gawk 'match($0, /^((src|..)\/\S+\.go):([0-9]+):/, a) {
+	gawk 'match($0, /^((..)\/\S+\.go):([0-9]+):/, a) {
 		print; system("'"$gpp"' -n show -p -c2 -n" a[3] " " a[1]);
 		next} {print}' "$output" >&2 ||:
 	# Doesn't highlight the relevant line:
