@@ -1,6 +1,10 @@
 codetag
 --------------------
 
+**Deprecation notice**: stopped using this tool myself in favor of simplier and faster
+[filetag](https://github.com/mk-fg/fgtk#filetag) script, so this repo is mostly abandoned,
+and likely have been for a while.
+
 A tool to scan "development area" (paths with code projects in them) and attach
 [tmsu](http://tmsu.org/) tags to their files, according to several pre-defined
 taxonomies (e.g. source language, project hosting - github/bitbucket/etc and
